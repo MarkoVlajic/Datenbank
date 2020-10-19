@@ -15,6 +15,21 @@ CREATE DATABASE IF NOT EXISTS `krautundrueben` /*!40100 DEFAULT CHARACTER SET la
 USE `krautundrueben`;
 
 
+-- Exportiere Struktur von Prozedur krautundrueben.AvgCaloriesByCustomer
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AvgCaloriesByCustomer`(IN `nachname` VARCHAR(50))
+BEGIN
+SELECT kunde.KUNDENNR, kunde.NACHNAME, kunde.VORNAME, SUM(zutat.`Kalorien pro 100gr`) AS "Durchschnitt Kalorien"
+FROM kunde
+left JOIN bestellung ON kunde.KUNDENNR = bestellung.KUNDENNR
+left JOIN rezept_has_bestellung ON bestellung.BESTELLNR = rezept_has_bestellung.bestellung_BESTELLNR
+left JOIN rezept_has_zutat ON rezept_has_bestellung.Rezept_ID = rezept_has_zutat.Rezept_ID
+left JOIN zutat ON rezept_has_zutat.zutat_ZUTATENNR = zutat.ZUTATENNR
+where  kunde.NACHNAME = nachname;
+END//
+DELIMITER ;
+
+
 -- Exportiere Struktur von Tabelle krautundrueben.bestellung
 CREATE TABLE IF NOT EXISTS `bestellung` (
   `BESTELLNR` int(11) NOT NULL AUTO_INCREMENT,
@@ -24,9 +39,9 @@ CREATE TABLE IF NOT EXISTS `bestellung` (
   PRIMARY KEY (`BESTELLNR`),
   KEY `KUNDENNR` (`KUNDENNR`),
   CONSTRAINT `bestellung_ibfk_1` FOREIGN KEY (`KUNDENNR`) REFERENCES `kunde` (`KUNDENNR`)
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=latin1;
 
--- Exportiere Daten aus Tabelle krautundrueben.bestellung: ~24 rows (ungefähr)
+-- Exportiere Daten aus Tabelle krautundrueben.bestellung: ~25 rows (ungefähr)
 /*!40000 ALTER TABLE `bestellung` DISABLE KEYS */;
 INSERT INTO `bestellung` (`BESTELLNR`, `KUNDENNR`, `BESTELLDATUM`, `RECHNUNGSBETRAG`) VALUES
 	(13, 2001, '2020-07-01', 6.21),
@@ -52,8 +67,65 @@ INSERT INTO `bestellung` (`BESTELLNR`, `KUNDENNR`, `BESTELLDATUM`, `RECHNUNGSBET
 	(33, 2009, '2020-08-10', 8.67),
 	(34, 2007, '2020-08-15', 17.98),
 	(35, 2005, '2020-08-12', 8.67),
-	(36, 2003, '2020-08-13', 20.87);
+	(36, 2003, '2020-08-13', 20.87),
+	(37, 2001, '2020-10-19', 6.71);
 /*!40000 ALTER TABLE `bestellung` ENABLE KEYS */;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.Exclude based on Allergenes
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Exclude based on Allergenes`(IN aller VARCHAR(50))
+BEGIN
+SELECT zutatennr, Allergene, rezept_id
+from rezept_has_zutat
+join zutat on zutat.ZUTATENNR = rezept_has_zutat.zutat_ZUTATENNR
+where Allergene != aller or Allergene is null;
+END//
+DELIMITER ;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.GetRecipeBasedOnNutrition
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetRecipeBasedOnNutrition`(IN nutrition VARCHAR(50))
+BEGIN
+SELECT *
+FROM rezept
+WHERE Ernährung = nutrition;
+END//
+DELIMITER ;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.GetUserInfo
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetUserInfo`(IN `category` VARCHAR(50))
+BEGIN
+SELECT * FROM kunde WHERE kunde.nachname=category;
+END//
+DELIMITER ;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.Include based on Allergenes
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Include based on Allergenes`(IN aller VARCHAR(50))
+BEGIN
+SELECT zutatennr, Allergene, rezept_id
+from rezept_has_zutat
+join zutat on zutat.ZUTATENNR = rezept_has_zutat.zutat_ZUTATENNR
+where Allergene = aller;
+END//
+DELIMITER ;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.IngredientsNotInRecipes
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `IngredientsNotInRecipes`()
+BEGIN
+select ZutatenNR, Bezeichnung, Rezept_ID
+from zutat 
+left join rezept_has_zutat on rezept_has_zutat.zutat_ZUTATENNR= zutat.ZUTATENNR
+where rezept_has_zutat.Rezept_ID is null;
+END//
+DELIMITER ;
 
 
 -- Exportiere Struktur von Tabelle krautundrueben.kunde
@@ -69,7 +141,7 @@ CREATE TABLE IF NOT EXISTS `kunde` (
   `TELEFON` varchar(25) DEFAULT NULL,
   `EMAIL` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`KUNDENNR`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=2010;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- Exportiere Daten aus Tabelle krautundrueben.kunde: ~9 rows (ungefähr)
 /*!40000 ALTER TABLE `kunde` DISABLE KEYS */;
@@ -97,7 +169,7 @@ CREATE TABLE IF NOT EXISTS `lieferant` (
   `TELEFON` varchar(25) DEFAULT NULL,
   `EMAIL` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`LIEFERANTENNR`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=104;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- Exportiere Daten aus Tabelle krautundrueben.lieferant: ~3 rows (ungefähr)
 /*!40000 ALTER TABLE `lieferant` DISABLE KEYS */;
@@ -108,6 +180,48 @@ INSERT INTO `lieferant` (`LIEFERANTENNR`, `LIEFERANTENNAME`, `STRASSE`, `HAUSNR`
 /*!40000 ALTER TABLE `lieferant` ENABLE KEYS */;
 
 
+-- Exportiere Struktur von Prozedur krautundrueben.max. Calories with certain amount of ingredients
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `max. Calories with certain amount of ingredients`(IN maxing INT, IN maxcal INT)
+BEGIN
+SELECT COUNT(Rezept_Id) AS "Anzahl an Zutaten",
+rezept_ID, Name, sum(`Kalorien pro 100gr`) as Gesamtkalorien
+FROM rezept_has_zutat
+left join rezept on rezept_has_zutat.Rezept_ID = rezept.ID
+left join zutat on zutat.ZUTATENNR = rezept_has_zutat.zutat_ZUTATENNR
+GROUP BY Rezept_ID
+HAVING COUNT(Rezept_ID) <= maxing and sum(`Kalorien pro 100gr`) <=maxcal;
+END//
+DELIMITER ;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.Recipes with Max Calories
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Recipes with Max Calories`(IN maxcal INT)
+BEGIN
+select rezept_id, sum(`Kalorien pro 100gr`) as Gesamtkalorien
+from rezept_has_zutat
+left join zutat on zutat.ZUTATENNR = rezept_has_zutat.zutat_ZUTATENNR
+group by rezept_id
+having sum(`Kalorien pro 100gr`) <= maxcal;
+END//
+DELIMITER ;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.RecipesBasedOnAmountOfIngredients
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `RecipesBasedOnAmountOfIngredients`(IN amount INT)
+BEGIN
+SELECT COUNT(Rezept_Id) AS "Anzahl an Zutaten",
+rezept_ID, Name
+FROM rezept_has_zutat
+left join rezept on rezept_has_zutat.Rezept_ID = rezept.ID
+GROUP BY Rezept_ID
+HAVING COUNT(Rezept_ID) <= amount;
+END//
+DELIMITER ;
+
+
 -- Exportiere Struktur von Tabelle krautundrueben.rezept
 CREATE TABLE IF NOT EXISTS `rezept` (
   `ID` int(11) NOT NULL,
@@ -115,7 +229,7 @@ CREATE TABLE IF NOT EXISTS `rezept` (
   `Preis in €` varchar(45) DEFAULT NULL,
   `Ernährung` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1004;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 -- Exportiere Daten aus Tabelle krautundrueben.rezept: ~4 rows (ungefähr)
 /*!40000 ALTER TABLE `rezept` DISABLE KEYS */;
@@ -180,6 +294,33 @@ INSERT INTO `rezept_has_zutat` (`Rezept_ID`, `zutat_ZUTATENNR`, `Menge`) VALUES
 /*!40000 ALTER TABLE `rezept_has_zutat` ENABLE KEYS */;
 
 
+-- Exportiere Struktur von Prozedur krautundrueben.SelectionOfRecipesBasedOnIngredientKey
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `SelectionOfRecipesBasedOnIngredientKey`(IN keynumber INT)
+BEGIN
+SELECT Rezept_ID as RezeptNr, Name as RezeptName, zutat_ZutatenNR as ZutatenNr, Bezeichnung as Zutatenname
+FROM rezept_has_zutat
+left join zutat on zutat.ZUTATENNR = rezept_has_zutat.zutat_ZUTATENNR
+left join rezept on rezept.ID = rezept_has_zutat.Rezept_ID
+WHERE zutat_ZUTATENNR = keynumber;
+END//
+DELIMITER ;
+
+
+-- Exportiere Struktur von Prozedur krautundrueben.Subselect Lieferant with max price
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Subselect Lieferant with max price`(IN lfnr INT, IN preis Decimal(4,2))
+BEGIN
+select * 
+from 
+(select *
+from zutat
+where lieferant = lfnr) a
+where nettopreis < preis;
+END//
+DELIMITER ;
+
+
 -- Exportiere Struktur von Tabelle krautundrueben.zutat
 CREATE TABLE IF NOT EXISTS `zutat` (
   `ZUTATENNR` int(11) NOT NULL,
@@ -192,6 +333,7 @@ CREATE TABLE IF NOT EXISTS `zutat` (
   `Kohlenhydrate pro 100gr` decimal(10,2) DEFAULT NULL,
   `Protein pro 100gr` decimal(10,2) DEFAULT NULL,
   `Fett pro 100gr` decimal(10,2) DEFAULT NULL,
+  `Allergene` varchar(150) DEFAULT NULL,
   PRIMARY KEY (`ZUTATENNR`),
   KEY `LIEFERANT` (`LIEFERANT`),
   CONSTRAINT `zutat_ibfk_1` FOREIGN KEY (`LIEFERANT`) REFERENCES `lieferant` (`LIEFERANTENNR`)
@@ -199,32 +341,31 @@ CREATE TABLE IF NOT EXISTS `zutat` (
 
 -- Exportiere Daten aus Tabelle krautundrueben.zutat: ~23 rows (ungefähr)
 /*!40000 ALTER TABLE `zutat` DISABLE KEYS */;
-INSERT INTO `zutat` (`ZUTATENNR`, `BEZEICHNUNG`, `EINHEIT`, `NETTOPREIS`, `BESTAND`, `LIEFERANT`, `Kalorien pro 100gr`, `Kohlenhydrate pro 100gr`, `Protein pro 100gr`, `Fett pro 100gr`) VALUES
-	(1001, 'Zucchini', 'Stück', 0.89, 100, 101, 19, 2.00, 1.60, 0.40),
-	(1002, 'Zwiebel', 'Stück', 0.15, 50, 101, 28, 4.90, 1.20, 0.10),
-	(1003, 'Tomate', 'Stück', 0.45, 50, 101, 18, 2.60, 1.00, 0.80),
-	(1004, 'Schalotte', 'Stück', 0.20, 500, 101, 25, 3.30, 1.50, 0.10),
-	(1005, 'Karotte', 'Stück', 0.30, 500, 101, 41, 10.00, 0.90, 1.00),
-	(1006, 'Kartoffel', 'Stück', 0.15, 1500, 101, 71, 14.60, 2.00, 1.50),
-	(1007, 'Rucola', 'Bund', 0.90, 10, 101, 27, 2.10, 2.60, 1.30),
-	(1008, 'Lauch', 'Stück', 1.20, 5, 101, 29, 3.30, 2.10, 0.30),
-	(1009, 'Knoblauch', 'Stück', 0.25, 250, 101, 141, 28.40, 6.10, 0.90),
-	(1010, 'Basilikum', 'Bund', 1.30, 10, 101, 41, 5.10, 3.10, 0.60),
-	(1011, 'Süßkartoffel', 'Stück', 2.00, 200, 101, 86, 20.00, 1.60, 7.80),
-	(1012, 'Schnittlauch', 'Bund', 0.90, 10, 101, 28, 1.00, 3.00, 0.20),
-	(2001, 'Apfel', 'Stück', 1.20, 750, 102, 54, 14.40, 0.30, 0.10),
-	(3001, 'Vollmilch. 3.5%', 'Liter', 1.50, 50, 103, 65, 4.70, 3.40, 18.00),
-	(3002, 'Mozzarella', 'Packung', 3.50, 20, 103, 241, 1.00, 18.10, 23.00),
-	(3003, 'Butter', 'Stück', 3.00, 0, 103, 741, 0.60, 0.70, 28.00),
-	(4001, 'Ei', 'Stück', 0.40, 300, 102, 137, 1.50, 11.90, 11.00),
-	(5001, 'Wiener Würstchen', 'Paar', 1.80, 40, 101, 331, 1.20, 9.90, 17.00),
-	(6300, 'Kichererbsen', 'Dose', 1.00, 400, 103, 150, 21.20, 9.00, 0.10),
-	(6408, 'Couscous', 'Packung', 1.90, 15, 102, 351, 67.00, 12.00, 0.30),
-	(7043, 'Gemüsebrühe', 'Würfel', 0.20, 4000, 101, 1, 0.50, 0.50, 0.10),
-	(8002, 'Reis', 'KG', 1.10, 800, 101, 80, 33.00, 17.00, 7.50),
-	(9001, 'Tofu-Würstchen', 'Stück', 1.80, 20, 103, 252, 7.00, 17.00, 13.00);
+INSERT INTO `zutat` (`ZUTATENNR`, `BEZEICHNUNG`, `EINHEIT`, `NETTOPREIS`, `BESTAND`, `LIEFERANT`, `Kalorien pro 100gr`, `Kohlenhydrate pro 100gr`, `Protein pro 100gr`, `Fett pro 100gr`, `Allergene`) VALUES
+	(1001, 'Zucchini', 'Stück', 0.89, 100, 101, 19, 2.00, 1.60, 0.40, NULL),
+	(1002, 'Zwiebel', 'Stück', 0.15, 50, 101, 28, 4.90, 1.20, 0.10, NULL),
+	(1003, 'Tomate', 'Stück', 0.45, 50, 101, 18, 2.60, 1.00, 0.80, NULL),
+	(1004, 'Schalotte', 'Stück', 0.20, 500, 101, 25, 3.30, 1.50, 0.10, NULL),
+	(1005, 'Karotte', 'Stück', 0.30, 500, 101, 41, 10.00, 0.90, 1.00, 'D'),
+	(1006, 'Kartoffel', 'Stück', 0.15, 1500, 101, 71, 14.60, 2.00, 1.50, NULL),
+	(1007, 'Rucola', 'Bund', 0.90, 10, 101, 27, 2.10, 2.60, 1.30, NULL),
+	(1008, 'Lauch', 'Stück', 1.20, 5, 101, 29, 3.30, 2.10, 0.30, NULL),
+	(1009, 'Knoblauch', 'Stück', 0.25, 250, 101, 141, 28.40, 6.10, 0.90, NULL),
+	(1010, 'Basilikum', 'Bund', 1.30, 10, 101, 41, 5.10, 3.10, 0.60, NULL),
+	(1011, 'Süßkartoffel', 'Stück', 2.00, 200, 101, 86, 20.00, 1.60, 7.80, NULL),
+	(1012, 'Schnittlauch', 'Bund', 0.90, 10, 101, 28, 1.00, 3.00, 0.20, NULL),
+	(2001, 'Apfel', 'Stück', 1.20, 750, 102, 54, 14.40, 0.30, 0.10, NULL),
+	(3001, 'Vollmilch. 3.5%', 'Liter', 1.50, 50, 103, 65, 4.70, 3.40, 18.00, 'Laktose'),
+	(3002, 'Mozzarella', 'Packung', 3.50, 20, 103, 241, 1.00, 18.10, 23.00, NULL),
+	(3003, 'Butter', 'Stück', 3.00, 0, 103, 741, 0.60, 0.70, 28.00, 'Laktose'),
+	(4001, 'Ei', 'Stück', 0.40, 300, 102, 137, 1.50, 11.90, 11.00, NULL),
+	(5001, 'Wiener Würstchen', 'Paar', 1.80, 40, 101, 331, 1.20, 9.90, 17.00, NULL),
+	(6300, 'Kichererbsen', 'Dose', 1.00, 400, 103, 150, 21.20, 9.00, 0.10, NULL),
+	(6408, 'Couscous', 'Packung', 1.90, 15, 102, 351, 67.00, 12.00, 0.30, NULL),
+	(7043, 'Gemüsebrühe', 'Würfel', 0.20, 4000, 101, 1, 0.50, 0.50, 0.10, '(NULL)'),
+	(8002, 'Reis', 'KG', 1.10, 800, 101, 80, 33.00, 17.00, 7.50, NULL),
+	(9001, 'Tofu-Würstchen', 'Stück', 1.80, 20, 103, 252, 7.00, 17.00, 13.00, NULL);
 /*!40000 ALTER TABLE `zutat` ENABLE KEYS */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-krautundrueben
