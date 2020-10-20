@@ -1,5 +1,5 @@
 -- --------------------------------------------------------
--- Host:                         127.0.0.1
+-- Host:                         localhost
 -- Server Version:               5.6.20 - MySQL Community Server (GPL)
 -- Server Betriebssystem:        Win32
 -- HeidiSQL Version:             9.3.0.4984
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `bestellung` (
   CONSTRAINT `bestellung_ibfk_1` FOREIGN KEY (`KUNDENNR`) REFERENCES `kunde` (`KUNDENNR`)
 ) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=latin1;
 
--- Exportiere Daten aus Tabelle krautundrueben.bestellung: ~25 rows (ungefähr)
+-- Exportiere Daten aus Tabelle krautundrueben.bestellung: ~24 rows (ungefähr)
 /*!40000 ALTER TABLE `bestellung` DISABLE KEYS */;
 INSERT INTO `bestellung` (`BESTELLNR`, `KUNDENNR`, `BESTELLDATUM`, `RECHNUNGSBETRAG`) VALUES
 	(13, 2001, '2020-07-01', 6.21),
