@@ -362,7 +362,7 @@ INSERT INTO `zutat` (`ZUTATENNR`, `BEZEICHNUNG`, `EINHEIT`, `NETTOPREIS`, `BESTA
 	(5001, 'Wiener Würstchen', 'Paar', 1.80, 40, 101, 331, 1.20, 9.90, 17.00, NULL),
 	(6300, 'Kichererbsen', 'Dose', 1.00, 400, 103, 150, 21.20, 9.00, 0.10, NULL),
 	(6408, 'Couscous', 'Packung', 1.90, 15, 102, 351, 67.00, 12.00, 0.30, NULL),
-	(7043, 'Gemüsebrühe', 'Würfel', 0.20, 4000, 101, 1, 0.50, 0.50, 0.10, '(NULL)'),
+	(7043, 'Gemüsebrühe', 'Würfel', 0.20, 4000, 101, 1, 0.50, 0.50, 0.10, NULL),
 	(8002, 'Reis', 'KG', 1.10, 800, 101, 80, 33.00, 17.00, 7.50, NULL),
 	(9001, 'Tofu-Würstchen', 'Stück', 1.80, 20, 103, 252, 7.00, 17.00, 13.00, NULL);
 /*!40000 ALTER TABLE `zutat` ENABLE KEYS */;
